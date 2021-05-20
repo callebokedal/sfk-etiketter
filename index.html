@@ -40,12 +40,19 @@
 					<div class="name" <%= person.family?'title="Familj: ' +person.family+'"':'' %>><%= person.name %><span class="d-none no-print"> <%= person.birthDate %></span></div>
 					<div class="streetaddress"><%= person.streetaddress %></div>
 					<div class="postaladdress"><%= person.postalcode %> <%= person.postaladdress %></div>
-					<!--<div class="grupper"><%= person.grupper %></div>-->
+					<!--<div class="groups"><%= person.groups %></div>-->
 				</div>
 			<% idx++;
 			}); %>
 		</div>
 	</script>
+
+	<!-- To show report -->
+	<div class="collapse" id="collapseReport">
+	  <div class="card card-body">
+		Some placeholder content for the collapse component. This panel is hidden by default but revealed when the user activates the relevant trigger.
+	  </div>
+	</div>
 
 	<div class="container no-print">
 		<h4 class="mt-3">Instruktioner</h4>
@@ -67,14 +74,20 @@
 						<input class="form-control" type="file" id="formFile" accept=".xls,.xlsx,.xlsb">
 					</div>
 					<div class="col-auto">
-						<button type="submit" class="btn btn-primary mb-3" onclick="upload();return false;">Läs in fil</button>
+						<button type="submit" class="btn btn-primary" onclick="upload();return false;">Läs in fil</button>
 						<!--<button type="submit" class="btn btn-primary mb-3" onclick="print();return false;">Skriv ut...</button>-->
+						<!--<button id="viewReport" class="btn btn-outline-primary ms-2" disabled type="button" data-bs-toggle="collapse" data-bs-target="#collapseReport" aria-expanded="false" aria-controls="collapseExample">
+							Visa rapport
+						</button>-->
 					</div>
 				</form>
 			</li>
 			<li class="list-group-item">4. Välj "Skriv ut" i webbläsaren</li>
 		</ul>
-
+		<div class="alert alert-success d-none" role="alert">
+			<h4 class="alert-heading">Resultat</h4>
+			<p class="mb-0" id="report"></p>
+		</div>
 	</div>
 	<div class="container-fluid">
 		<div id="pageBody"></div>
@@ -105,6 +118,9 @@
 			//Reference the FileUpload element.
 			let fileUpload = document.getElementById("formFile");
 			console.log("file: ", fileUpload.value);
+
+			// Works
+			//document.getElementById("viewReport").removeAttribute("disabled");
 	
 			// Validate whether File is valid Excel file.
 			let regex = /^([a-zA-Z0-9\s_\\.-:]).+(.xls|.xlsx|.xlsb)$/;
@@ -137,6 +153,19 @@
 			}
 		};
 
+		let renderReport = (report, count) => {
+			let r = _.groupBy(report, _.iteratee('type'));
+			let s = "";
+			_.each(r, function(value, key) {
+				if(s != "") {
+					s += ", ";
+				}
+				s += key + ": " + value.length +" st";
+			});
+			$("#report").html("Antal etiketter: " + count + " st. Exkluderade - " + s);
+			$("#report").parent().toggleClass("d-none", false);
+		}
+
 		let processExcel = (data) => {
 			console.log("processExcel");
 			//Read the Excel File data.
@@ -154,6 +183,7 @@
 			let i=0;
 
 			let result = [];
+			let report = [];
 			for (let person of excelRows) {
 				if(i<5000) {
 					i++;
@@ -177,26 +207,26 @@
 				if(_.trim(e['Folkbokföring - Gatuadress']) != "") {
 					// Assume we have Folkbokföringsadress
 					return {
-						name: e['Förnamn'] + ' ' + e['Efternamn'],
-						streetaddress: e['Folkbokföring - Gatuadress'],
-						postalcode: e['Folkbokföring - Postnummer'],
-						postaladdress: e['Folkbokföring - Postort'],
-						co_address: e['Folkbokföring - c/o adress'],
-						family: e['Familj'],
-						birthDate: e['Födelsedat./Personnr.'],
-						grupper: e['Grupp/Lag/Arbetsrum/Familj']
+						name: _.trim(e['Förnamn']) + ' ' + _.trim(e['Efternamn']),
+						streetaddress: _.trim(e['Folkbokföring - Gatuadress']),
+						postalcode: _.trim(e['Folkbokföring - Postnummer']),
+						postaladdress: _.trim(e['Folkbokföring - Postort']),
+						co_address: _.trim(e['Folkbokföring - c/o adress']),
+						family: _.trim(e['Familj']),
+						birthDate: _.trim(e['Födelsedat./Personnr.']),
+						groups: _.trim(e['Grupp/Lag/Arbetsrum/Familj'])
 					}
 				} else {
 					// Fallback to Kontaktadress
 					return {
-						name: e['Förnamn'] + ' ' + e['Efternamn'],
-						streetaddress: e['Kontaktadress - Gatuadress'],
-						postalcode: e['Kontaktadress - Postnummer'],
-						postaladdress: e['Kontaktadress - Postort'],
-						co_address: e['Kontaktadress - c/o adress'],
-						family: e['Familj'],
-						birthDate: e['Födelsedat./Personnr.'],
-						grupper: e['Grupp/Lag/Arbetsrum/Familj']
+						name: _.trim(e['Förnamn']) + ' ' + _.trim(e['Efternamn']),
+						streetaddress: _.trim(e['Kontaktadress - Gatuadress']),
+						postalcode: _.trim(e['Kontaktadress - Postnummer']),
+						postaladdress: _.trim(e['Kontaktadress - Postort']),
+						co_address: _.trim(e['Kontaktadress - c/o adress']),
+						family: _.trim(e['Familj']),
+						birthDate: _.trim(e['Födelsedat./Personnr.']),
+						groups: _.trim(e['Grupp/Lag/Arbetsrum/Familj'])
 					}
 				}
 			});
@@ -206,7 +236,12 @@
 
 			// Reject persons with MC_IngenTidning
 			result = _.reject(result, function(o) {
-				return _.map(_.split(o.grupper, ','), _.trim).includes('MC_IngenTidning');
+				let noPaper = _.map(_.split(o.groups, ','), _.trim).includes('MC_IngenTidning')
+				if(noPaper) {
+					report.push({name: o.name, type: 'MC_IngenTidning', value: o.streetaddress});
+				}
+				return noPaper;
+				//return _.map(_.split(o.groups, ','), _.trim).includes('MC_IngenTidning');
 			});
 
 			// Keep only one per family
@@ -218,15 +253,39 @@
 						familyList.push(person.family); // Store as family representant
 						return true;
 					} 
-					return false; // Skip if amyliy member already stored (should be older due to sorting)
+					report.push({name: person.name, type: 'Del av familj', value: person.family});
+					return false; // Skip if family member already stored (should be older due to sorting)
 				} 
 				return true; 
 			});
 
+			// Only one per address
+			let householdList = []; // Keep track of "households" - to avoid duplicates per household
+			// Sort again by age - not sure if filter above affects order or not
+			result = _.sortBy(result, [function(o) { return o.birthDate; }]); // To get oldest person as family representant
+			result = _.filter(result, function(person) {
+				let householdKey = _.lowerCase(person.streetaddress)+_.lowerCase(person.postalcode);
+				if(householdKey) {
+					if(!householdList.includes(householdKey)) {
+						householdList.push(householdKey); // Store as household representant
+						return true;
+					} 
+					report.push({name: person.name, type: 'Samma adress', value: person.streetaddress});
+					console.log("Person bor redan på address som får tidning: " + person.name + ", " + person.streetaddress);
+					return false; // Skip if household member already stored (should be older due to sorting)
+				} 
+				report.push({name: person.name, type: "Felaktig", value: person.birthDate});
+				console.error("Should not end up here: " + person.name + ", " +householdKey);
+				return false; 
+			});
+
 			// Sort by postnummer - by request
 			result = _.sortBy(result, [function(o) { return o.postalcode; }]);
-			
+
 			fillPage(result);
+
+			report = _.sortBy(report, [function(o) { return o.type; }]);
+			renderReport(report, result.length);
 		};
     </script>
 </body>
