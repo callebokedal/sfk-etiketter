@@ -88,6 +88,10 @@
 			<h4 class="alert-heading">Resultat</h4>
 			<p class="mb-0" id="report"></p>
 		</div>
+		<div class="alert alert-danger d-none" role="alert">
+			<h4 class="alert-heading">Felaktiga</h4>
+			<p class="mb-0" id="invalid"></p>
+		</div>
 	</div>
 	<div class="container-fluid">
 		<div id="pageBody"></div>
@@ -153,7 +157,7 @@
 			}
 		};
 
-		let renderReport = (report, count) => {
+		let renderReport = (report, invalid, count) => {
 			let r = _.groupBy(report, _.iteratee('type'));
 			let s = "";
 			_.each(r, function(value, key) {
@@ -164,6 +168,17 @@
 			});
 			$("#report").html("Antal etiketter: " + count + " st. Exkluderade - " + s);
 			$("#report").parent().toggleClass("d-none", false);
+
+			// Show any invalid
+			if(!_.isEmpty(invalid)) {
+
+				let i = "";
+				_.each(invalid, function(value, key) {
+					i += "<div>" + value.name + " " + value.birthDate + "</div>";
+				});
+				$("#invalid").html(i);
+				$("#invalid").parent().toggleClass("d-none", false);
+			}
 		}
 
 		let processExcel = (data) => {
@@ -182,8 +197,9 @@
 			// For testing purposes, to limit the result in "size"
 			let i=0;
 
-			let result = [];
-			let report = [];
+			let result = []; // List to print
+			let report = []; // Report info	
+			let invalid = []; // Invalid persons
 			for (let person of excelRows) {
 				if(i<5000) {
 					i++;
@@ -276,6 +292,7 @@
 				} 
 				report.push({name: person.name, type: "Felaktig", value: person.birthDate});
 				console.error("Should not end up here: " + person.name + ", " +householdKey);
+				invalid.push({name: person.name, birthDate: person.birthDate});
 				return false; 
 			});
 
@@ -285,7 +302,7 @@
 			fillPage(result);
 
 			report = _.sortBy(report, [function(o) { return o.type; }]);
-			renderReport(report, result.length);
+			renderReport(report, invalid, result.length);
 		};
     </script>
 </body>
