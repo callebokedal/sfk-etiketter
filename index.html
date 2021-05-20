@@ -40,6 +40,7 @@
 					<div class="name" <%= person.family?'title="Familj: ' +person.family+'"':'' %>><%= person.name %><span class="d-none no-print"> <%= person.birthDate %></span></div>
 					<div class="streetaddress"><%= person.streetaddress %></div>
 					<div class="postaladdress"><%= person.postalcode %> <%= person.postaladdress %></div>
+					<!--<div class="grupper"><%= person.grupper %></div>-->
 				</div>
 			<% idx++;
 			}); %>
@@ -82,9 +83,9 @@
     <script>
 		'use strict';
 
-		document.addEventListener("DOMContentLoaded", function(event) { 
+		/*document.addEventListener("DOMContentLoaded", function(event) { 
 			console.log("Ready!");
-		});
+		});*/
 
 		// Fill page with list of persons
 		let fillPage = (list) => {
@@ -166,7 +167,8 @@
 						'Kontaktadress - Postnummer',
 						'Kontaktadress - Postort',
 						'Kontaktadress - c/o adress',
-						'Födelsedat./Personnr.'
+						'Födelsedat./Personnr.',
+						'Grupp/Lag/Arbetsrum/Familj'
 					]));
 				}
 			}
@@ -181,7 +183,8 @@
 						postaladdress: e['Folkbokföring - Postort'],
 						co_address: e['Folkbokföring - c/o adress'],
 						family: e['Familj'],
-						birthDate: e['Födelsedat./Personnr.']
+						birthDate: e['Födelsedat./Personnr.'],
+						grupper: e['Grupp/Lag/Arbetsrum/Familj']
 					}
 				} else {
 					// Fallback to Kontaktadress
@@ -192,13 +195,19 @@
 						postaladdress: e['Kontaktadress - Postort'],
 						co_address: e['Kontaktadress - c/o adress'],
 						family: e['Familj'],
-						birthDate: e['Födelsedat./Personnr.']
+						birthDate: e['Födelsedat./Personnr.'],
+						grupper: e['Grupp/Lag/Arbetsrum/Familj']
 					}
 				}
 			});
 
 			// Perhaps reject some?
 			// result = _.reject(result, function(o) { return !o.active; });
+
+			// Reject persons with MC_IngenTidning
+			result = _.reject(result, function(o) {
+				return _.map(_.split(o.grupper, ','), _.trim).includes('MC_IngenTidning');
+			});
 
 			// Keep only one per family
 			let familyList = []; // Keep track of existing families
