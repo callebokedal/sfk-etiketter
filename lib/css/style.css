@@ -1,0 +1,46 @@
+nav {
+    background-color: #3f9049;
+}
+
+div.persons .name[title] {
+    color: #198754;
+    cursor: help;
+}
+
+/*@page {
+    size: 21cm 29.7cm;
+    margin: 30mm 45mm 30mm 45mm;
+}*/
+@page {
+    size: A4;
+    margin: 0;
+}
+
+@media all {
+	.page-break	{ display: none; }
+}
+
+@media print {
+    html, body {
+        width: 210mm;
+        height: 297mm;
+    }
+
+    * {
+        font-size: small;
+    }
+
+    .no-print {
+        display: none;
+    }
+    div.persons .name[title] {
+        color: #000;
+    }
+
+    div.person {
+        margin-top: 1cm;
+        margin-bottom: 1cm;
+    }
+
+	.page-break	{ display: block; page-break-before: always; }
+}
