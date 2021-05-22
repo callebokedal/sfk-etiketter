@@ -33,11 +33,11 @@ div.persons .name[title] {
     .no-print {
         display: none;
     }
-    div.persons .name[title] {
+    div.page .name[title] {
         color: #000;
     }
 
-    div.persons {
+    div.page {
         margin-left: 0.2cm;
         padding-top: 0.3cm;
     }
