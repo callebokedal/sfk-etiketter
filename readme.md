@@ -1,5 +1,12 @@
 # Readme
 
+## Print out 
+
+        https://jsfiddle.net/destan/e9gjwodL/
+
+
+## Model
+
 Record type
 
         {
