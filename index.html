@@ -105,10 +105,6 @@
     <script>
 		'use strict';
 
-		/*document.addEventListener("DOMContentLoaded", function(event) { 
-			console.log("Ready!");
-		});*/
-
 		// Fill page with list of persons
 		let fillPage = (list) => {
 			// Template
@@ -117,11 +113,6 @@
 			// Render
 			$("#pageBody").html(pageTemplate({persons:list}));
 		}
-
-		// Use print method, to get elements right
-		/*let print = () => {
-
-		};*/
 
 		let upload = () => {
 			//Reference the FileUpload element.
@@ -194,6 +185,44 @@
 				result_report.push(_.pick(value, ['name','birthDate','family']))
 			})
 			localStorage.setItem("sfk-etiketter-result", JSON.stringify(result_report));
+		}
+
+		let saveReport = (report, invalid, result) => {
+			var wb = XLSX.utils.book_new();
+			wb.SheetNames.push("Utskick");
+			wb.SheetNames.push("Exkluderade");
+			wb.SheetNames.push("Felaktiga");
+
+			let ws_data = [];
+			_.each(report, function(item, idx) {
+				//console.log("exkluderade (" + idx + "): ", item);
+				ws_data.push(_.values(item));
+			});
+			console.log("ws_data; ", ws_data);
+			wb.Sheets["Exkluderade"] = XLSX.utils.aoa_to_sheet(ws_data);
+			console.log("wb: ", wb);
+
+			//let sht1 = XLSX.utils.aoa_to_sheet([["en","två","tre"],[1,2,3],[4,5],[7,8,9]])
+			//var shtExcluded = XLSX.utils.aoa_to_sheet(ws_data);
+			//XLSX.utils.book_append_sheet(wb, ws, ws_name);
+			
+			ws_data = [];
+			_.each(invalid, function(item, idx) {
+				//console.log("invalid (" + idx + "): ", item);
+				ws_data.push(_.values(item));
+			});
+			wb.Sheets["Felaktiga"] = XLSX.utils.aoa_to_sheet(ws_data);
+
+			ws_data = [];
+			result = _.sortBy(result, [function(o) { return o.postalcode; }]);
+			_.each(result, function(item, idx) {
+				//console.log("utskick (" + idx + "): ", _.pick(item, ['name','birthDate','streetaddress','family']));
+				ws_data.push(_.values(_.pick(item, ['name','birthDate','streetaddress','family'])));
+			});
+			wb.Sheets["Utskick"] = XLSX.utils.aoa_to_sheet(ws_data);
+
+			// Save to file
+			XLSX.writeFile(wb, "Rapport etiketter.xlsx", {});
 		}
 
 		let processExcel = (data) => {
@@ -318,6 +347,7 @@
 
 			report = _.sortBy(report, [function(o) { return o.type; }]);
 			renderReport(report, invalid, result);
+			saveReport(report, invalid, result);
 		};
     </script>
 </body>
