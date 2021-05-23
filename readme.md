@@ -4,6 +4,10 @@
 
         https://jsfiddle.net/destan/e9gjwodL/
 
+## Autofit columns
+
+Perhaps:
+https://github.com/SheetJS/sheetjs/issues/1473
 
 ## Model
 
