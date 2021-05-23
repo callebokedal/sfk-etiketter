@@ -39,10 +39,10 @@ div.persons .name[title] {
 
     div.page {
         margin-left: 0.2cm;
-        padding-top: 0.3cm;
+        padding-top: 0.5cm;
     }
     div.person {
-        height: 3.65cm; /* Each label have this height */
+        height: 3.6cm; /* Each label have this height */
         /*background-color: #198754;*/
     }
 
