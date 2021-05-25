@@ -12,6 +12,9 @@
     <script src="lib/js/jquery-3.6.0.min.js"></script>
     <script src="lib/js/lodash.min.js"></script>
     <script src="lib/js/xlsx.full.min.js"></script>
+    <script src="lib/js/routie.min.js"></script>
+    <script src="lib/js/app.js"></script>
+    <script src="lib/js/routers.js"></script>
 </head>
 <body>
 
@@ -27,12 +30,11 @@
 	</nav>
 
 	<!-- Template for A4-page with 3x8 grids -->
-	<!--
-	<div class="container-fluid">
-		<div id="pageBody"></div>
-	</div>
-	-->
-	<script type="text/template" id="pageTemplate">
+	<script type="text/template" id="listTemplateOld">
+		<div class="row page">Heja
+		</div>
+	</script>
+	<script type="text/template" id="listTemplate">
 		<div class="row page">
 			<% 
 			let idx = 0;
@@ -41,15 +43,24 @@
 					idx = 0; %>
 		</div>
 		<div class="page-break"></div>
-		<div class="row page"><!--<div class="container-fluid"><div class="row page">-->
+		<div class="row page">
 				<% }
-				%><div class="col col-4 pb-4 border fs-6 person">
+				%><div class="col col-4 pb-4 border fs-6 person <%= person.print?' bg-success-light':' no-print bg-danger-light' %>">
+					<div class="float-end text-end no-print">
+						<!--<div onclick="togglePersonState(this);return false;" class="btn mt-1 btn-sm toggler <%= person.print?'btn-success':'btn-danger' %>" id="<%= person.id %>"><%= person.print?printIcon:noPrintIcon %></div>-->
+						<a href="#toggle/<%= person.id %>" class="btn mt-1 btn-sm toggler <%= person.print?'btn-success':'btn-danger' %>" id="<%= person.id %>"><%= person.print?printIcon:noPrintIcon %></a>
+						<div><small class="text-sm text-muted"><%= person.nopaper?noPaperIcon:placeholderIcon %></small></div>
+						<div><small class="text-muted"><%= person.familyHead?familyHeadIcon:placeholderIcon %></small></div>
+						<div><small class="text-muted"><%= person.familyMember?familyMemberIcon:placeholderIcon %></small></div>
+						<div><small class="text-muted"><%= person.houseHold?householdHeadIcon:placeholderIcon %></small></div>
+						<div><small class="text-muted"><%= person.houseHoldMember?householdMemberIcon:placeholderIcon %></small></div>
+					</div>
 					<div class="name" <%= person.family?'title="Familj: ' +person.family+'"':'' %>><%= person.name %><span class="d-none no-print"> <%= person.birthDate %></span></div>
 					<div class="streetaddress"><%= person.streetaddress %></div>
 					<div class="postaladdress"><%= person.postalcode %> <%= person.postaladdress %></div>
 					<!--<div class="groups"><%= person.groups %></div>-->
 				</div>
-			<% idx++;
+			<% if(person.print) {idx++};
 			}); %>
 		</div>
 	</script>
@@ -79,7 +90,8 @@
 						<input class="form-control" type="file" id="formFile" accept=".xls,.xlsx,.xlsb">
 					</div>
 					<div class="col-auto">
-						<button type="submit" class="btn btn-primary" onclick="upload();return false;">Läs in fil</button>
+						<!--<button type="submit" class="btn btn-primary" onclick="upload();return false;">Läs in fil</button>-->
+						<a href="#upload" class="btn btn-primary">Läs in fil</a>
 						<!--<button type="submit" class="btn btn-primary mb-3" onclick="print();return false;">Skriv ut...</button>-->
 						<!--<button id="viewReport" class="btn btn-outline-primary ms-2" disabled type="button" data-bs-toggle="collapse" data-bs-target="#collapseReport" aria-expanded="false" aria-controls="collapseExample">
 							Visa rapport
@@ -98,6 +110,15 @@
 			<p class="mb-0" id="invalid"></p>
 		</div>
 	</div>
+
+	<div class="container no-print mb-4">
+		<div id="printController" class="">
+			<a href="#selectall" class="btn btn-primary">Markera alla för utskrift</a>
+			<a href="#deselectall" class="btn btn-primary">Avmarkera alla från utskrift</a>
+		</div>
+		<small>Du kan alltid läsa om filen för att "återställa"</small>
+	</div>
+
 	<div class="container-fluid">
 		<div id="pageBody"></div>
 	</div>
@@ -106,54 +127,15 @@
 		'use strict';
 
 		// Fill page with list of persons
-		let fillPage = (list) => {
+		/*let fillPage = (list) => {
 			// Template
 			let pageTemplate = _.template($('#pageTemplate').html());
 
 			// Render
 			$("#pageBody").html(pageTemplate({persons:list}));
-		}
+		}*/
 
-		let upload = () => {
-			//Reference the FileUpload element.
-			let fileUpload = document.getElementById("formFile");
-			console.log("file: ", fileUpload.value);
-
-			// Works
-			//document.getElementById("viewReport").removeAttribute("disabled");
-	
-			// Validate whether File is valid Excel file.
-			let regex = /^([a-zA-Z0-9\s_\\.-:]).+(.xls|.xlsx|.xlsb)$/;
-			if (regex.test(fileUpload.value.toLowerCase())) {
-				if (typeof (FileReader) != "undefined") {
-					let reader = new FileReader();
-					//For Browsers other than IE.
-					if (reader.readAsBinaryString) {
-						reader.onload = function (e) {
-							processExcel(e.target.result);
-						};
-						reader.readAsBinaryString(fileUpload.files[0]);
-					} else {
-						//For IE Browser.
-						reader.onload = function (e) {
-							var data = "";
-							var bytes = new Uint8Array(e.target.result);
-							for (var i = 0; i < bytes.byteLength; i++) {
-								data += String.fromCharCode(bytes[i]);
-							}
-							processExcel(data);
-						};
-						reader.readAsArrayBuffer(fileUpload.files[0]);
-					}
-				} else {
-					alert("Den här webbläsaren har inte stöd för HTML5 - vilket är ett krav");
-				}
-			} else {
-				alert("Vald fil är ogiltig!");
-			}
-		};
-
-		let renderReport = (report, invalid, result) => {
+		let renderReportOld = (report, invalid, result) => {
 			let count = result.length;
 			let r = _.groupBy(report, _.iteratee('type'));
 			let s = "";
@@ -178,16 +160,16 @@
 			}
 
 			// Save to browser
-			localStorage.setItem("sfk-etiketter-report", JSON.stringify(report));
-			localStorage.setItem("sfk-etiketter-invalid", JSON.stringify(invalid));
+			sessionStorage.setItem("sfk-etiketter-report", JSON.stringify(report));
+			sessionStorage.setItem("sfk-etiketter-invalid", JSON.stringify(invalid));
 			var result_report = [];
 			_.each(result, function(value) {
 				result_report.push(_.pick(value, ['name','birthDate','family']))
 			})
-			localStorage.setItem("sfk-etiketter-result", JSON.stringify(result_report));
+			sessionStorage.setItem("sfk-etiketter-result", JSON.stringify(result_report));
 		}
 
-		let saveReport = (report, invalid, result) => {
+		let saveReportToFile = (report, invalid, result) => {
 			var wb = XLSX.utils.book_new();
 			wb.SheetNames.push("Utskick");
 			wb.SheetNames.push("Exkluderade");
@@ -225,8 +207,90 @@
 			XLSX.writeFile(wb, "Rapport etiketter.xlsx", {});
 		}
 
+		let markIngenTidning = (person) => {
+			//let noPaper = _.map(_.split(o.groups, ','), _.trim).includes('MC_IngenTidning');
+			if(_.map(_.split(person.groups, ','), _.trim).includes('MC_IngenTidning')) {
+				person.print = false;
+				person.nopaper = 'MC_IngenTidning';
+			};
+			return person;
+		}
+				
+		let markFamilyRepresentant = (person, idx, persons) => {
+			//console.log("markFamilyRepresentant");
+			//console.log("markFamilyRepresentant ", person, idx, persons);
+			if(person.family) {
+				// Find first (printable) index for this family
+				let firstFamilyIndex = _.findIndex(persons, function(p) { 
+					return person.print && p.family == person.family; 
+				});
+				// Get first stored family head
+				let familyIndex = _.findIndex(persons, function(p) { 
+					return p.family == person.family && p.familyHead == firstFamilyIndex; 
+				});
+				if(firstFamilyIndex >= 0 && familyIndex < 0) {
+					// Set as family head
+					person.print = true;
+					person.familyHead = firstFamilyIndex;
+				} else { //if(firstFamilyIndex >= 0 && familyIndex >= 0) {
+					// Set as duplicate for this family
+					person.print = false;
+					person.familyMember = true;
+				}
+			} 
+			return person;
+		}
+
+		let markOnePerHousehold = (person, idx, persons) => {
+			//console.log("markOnePerHousehold");
+			let householdKey = _.lowerCase(person.streetaddress)+_.lowerCase(person.postalcode);
+			if(householdKey) {
+				// Find first (printable) household key
+				// -1 for no hit, else 0+
+				let firstHouseholdIndex = _.findIndex(persons, function(p) { 
+					return person.print && p.householdKey == householdKey; 
+				});
+				// Get current persons idx
+				// -1 for no hit, else 0+
+				let householdIndex = _.findIndex(persons, function(p) { 
+					return p.householdKey == householdKey && p.householdIndex == firstHouseholdIndex; 
+				});
+				if(firstHouseholdIndex >= 0 && householdIndex < 0) {
+					// Set as household head
+					person.print = person.print && true;
+					person.householdIndex = firstHouseholdIndex;
+				} else {
+					// Set as duplicate for this household
+					//person.print = false;
+					person.householdMember = true;
+				}
+			} else {
+				person.print = false;
+				person.invalid = true;
+			}
+			return person;
+		};
+
+		/*
+			result = _.filter(result, function(person) {
+				let householdKey = _.lowerCase(person.streetaddress)+_.lowerCase(person.postalcode);
+				if(householdKey) {
+					if(!householdList.includes(householdKey)) {
+						householdList.push(householdKey); // Store as household representant
+						return true;
+					} 
+					report.push({name: person.name, type: 'Samma adress', value: person.streetaddress});
+					//console.log("Person bor redan på address som får tidning: " + person.name + ", " + person.streetaddress);
+					return false; // Skip if household member already stored (should be older due to sorting)
+				} 
+				report.push({name: person.name, type: "Felaktig", value: person.birthDate});
+				//console.error("Should not end up here: " + person.name + ", " +householdKey);
+				invalid.push({name: person.name, birthDate: person.birthDate});
+				return false; 
+			});*/
+
 		let processExcel = (data) => {
-			console.log("processExcel");
+			//console.log("index.html: processExcel");
 			//Read the Excel File data.
 			let workbook = XLSX.read(data, {
 				type: 'binary'
@@ -241,13 +305,11 @@
 			// For testing purposes, to limit the result in "size"
 			let i=0;
 
-			let result = []; // List to print
-			let report = []; // Report info	
-			let invalid = []; // Invalid persons
+			let result = []; // Persons
 			for (let person of excelRows) {
-				if(i<5000) {
+				if(i<50000) {
 					i++;
-					result.push(_.pick(person, ['Förnamn', 'Efternamn',
+					result.push(_.pick(person, ['IdrottsID','Förnamn', 'Efternamn',
 						'Folkbokföring - Gatuadress',
 						'Folkbokföring - Postnummer',
 						'Folkbokföring - Postort',
@@ -267,6 +329,7 @@
 				if(_.trim(e['Folkbokföring - Gatuadress']) != "") {
 					// Assume we have Folkbokföringsadress
 					return {
+						id: _.trim(e['IdrottsID']),
 						name: _.trim(e['Förnamn']) + ' ' + _.trim(e['Efternamn']),
 						streetaddress: _.trim(e['Folkbokföring - Gatuadress']),
 						postalcode: _.trim(e['Folkbokföring - Postnummer']),
@@ -274,11 +337,14 @@
 						co_address: _.trim(e['Folkbokföring - c/o adress']),
 						family: _.trim(e['Familj']),
 						birthDate: _.trim(e['Födelsedat./Personnr.']),
-						groups: _.trim(e['Grupp/Lag/Arbetsrum/Familj'])
+						groups: _.trim(e['Grupp/Lag/Arbetsrum/Familj']),
+						print: true,
+						type: 'default'
 					}
 				} else {
 					// Fallback to Kontaktadress
 					return {
+						id: _.trim(e['IdrottsID']),
 						name: _.trim(e['Förnamn']) + ' ' + _.trim(e['Efternamn']),
 						streetaddress: _.trim(e['Kontaktadress - Gatuadress']),
 						postalcode: _.trim(e['Kontaktadress - Postnummer']),
@@ -286,69 +352,47 @@
 						co_address: _.trim(e['Kontaktadress - c/o adress']),
 						family: _.trim(e['Familj']),
 						birthDate: _.trim(e['Födelsedat./Personnr.']),
-						groups: _.trim(e['Grupp/Lag/Arbetsrum/Familj'])
+						groups: _.trim(e['Grupp/Lag/Arbetsrum/Familj']),
+						print: true,
+						type: 'contact-address'
 					}
 				}
 			});
 
-			// Perhaps reject some?
-			// result = _.reject(result, function(o) { return !o.active; });
-
-			// Reject persons with MC_IngenTidning
-			result = _.reject(result, function(o) {
-				let noPaper = _.map(_.split(o.groups, ','), _.trim).includes('MC_IngenTidning')
-				if(noPaper) {
-					report.push({name: o.name, type: 'MC_IngenTidning', value: o.streetaddress});
-				}
-				return noPaper;
-				//return _.map(_.split(o.groups, ','), _.trim).includes('MC_IngenTidning');
-			});
+			// Mark MC_IngenTidning
+			result = _.map(result, markIngenTidning);
 
 			// Keep only one per family
-			let familyList = []; // Keep track of existing families
+			//let familyList = []; // Keep track of existing families
 			result = _.sortBy(result, [function(o) { return o.birthDate; }]); // To get oldest person as family representant
-			result = _.filter(result, function(person) {
-				if(person.family) {
-					if(!familyList.includes(person.family)) {
-						familyList.push(person.family); // Store as family representant
-						return true;
-					} 
-					report.push({name: person.name, type: 'Del av familj', value: person.family});
-					return false; // Skip if family member already stored (should be older due to sorting)
-				} 
-				return true; 
-			});
+			result = _.map(result, markFamilyRepresentant, result);
 
 			// Only one per address
 			let householdList = []; // Keep track of "households" - to avoid duplicates per household
 			// Sort again by age - not sure if filter above affects order or not
 			result = _.sortBy(result, [function(o) { return o.birthDate; }]); // To get oldest person as family representant
-			result = _.filter(result, function(person) {
-				let householdKey = _.lowerCase(person.streetaddress)+_.lowerCase(person.postalcode);
-				if(householdKey) {
-					if(!householdList.includes(householdKey)) {
-						householdList.push(householdKey); // Store as household representant
-						return true;
-					} 
-					report.push({name: person.name, type: 'Samma adress', value: person.streetaddress});
-					//console.log("Person bor redan på address som får tidning: " + person.name + ", " + person.streetaddress);
-					return false; // Skip if household member already stored (should be older due to sorting)
-				} 
-				report.push({name: person.name, type: "Felaktig", value: person.birthDate});
-				//console.error("Should not end up here: " + person.name + ", " +householdKey);
-				invalid.push({name: person.name, birthDate: person.birthDate});
-				return false; 
-			});
+			result = _.map(result, markOnePerHousehold, result);
 
 			// Sort by postnummer - by request
 			result = _.sortBy(result, [function(o) { return o.postalcode; }]);
 
-			fillPage(result);
-
-			report = _.sortBy(report, [function(o) { return o.type; }]);
-			renderReport(report, invalid, result);
-			saveReport(report, invalid, result);
+			// Show loaded result
+			sessionStorage.setItem("sfk-etiketter-list", JSON.stringify(result));
+			console.log("index.html: list stored");
+			routie.navigate("list");
+			//report = _.sortBy(report, [function(o) { return o.type; }]);
+			//renderReport(report, invalid, result);
+			//saveReport(report, invalid, result);
 		};
+
+		document.addEventListener('DOMContentLoaded', function (event) {
+			//document.location.hash = '';
+			//window.location = "#";
+			console.log("Ready!");
+			//document.getElementById("pageBody").addEventListener("click", togglePersonState.bind(this), false);
+			setupRouters();
+			routie("");
+		});
     </script>
 </body>
 </html>

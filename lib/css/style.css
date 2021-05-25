@@ -7,6 +7,13 @@ div.persons .name[title] {
     cursor: help;
 }
 
+.bg-success-light {
+    background-color: #d1e7dd;
+}
+.bg-danger-light {
+    background-color: #f8d7da;
+}
+
 /*@page {
     size: 21cm 29.7cm;
     margin: 30mm 45mm 30mm 45mm;
@@ -16,11 +23,21 @@ div.persons .name[title] {
     margin: 0;
 }
 
-@media all {
-	.page-break	{ display: none; }
+@media screen {
+	.page-break	{ 
+        display: none; 
+        page-break-before: avoid; 
+    }
+    .person .toggler {
+        cursor: pointer;
+    }
 }
 
 @media print {
+
+	/*.page-break	{ display: none; }*/
+	.page-break	{ display: block; page-break-before: always; }
+
     html, body {
         width: 210mm;
         height: 297mm;
@@ -50,6 +67,12 @@ div.persons .name[title] {
     div.border {
         border: 0 #fff !important;
     }
+    
+    .bg-success-light {
+        background-color: transparent;
+    }
+    .bg-danger-light {
+        background-color: transparent;
+    }
 
-	.page-break	{ display: block; page-break-before: always; }
 }
