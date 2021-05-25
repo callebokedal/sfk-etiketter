@@ -47,18 +47,16 @@
 				<% }
 				%><div class="col col-4 pb-4 border fs-6 person <%= person.print?' bg-success-light':' no-print bg-danger-light' %>">
 					<div class="float-end text-end no-print">
-						<!--<div onclick="togglePersonState(this);return false;" class="btn mt-1 btn-sm toggler <%= person.print?'btn-success':'btn-danger' %>" id="<%= person.id %>"><%= person.print?printIcon:noPrintIcon %></div>-->
 						<a href="#toggle/<%= person.id %>" class="btn mt-1 btn-sm toggler <%= person.print?'btn-success':'btn-danger' %>" id="<%= person.id %>"><%= person.print?printIcon:noPrintIcon %></a>
 						<div><small class="text-sm text-muted"><%= person.nopaper?noPaperIcon:placeholderIcon %></small></div>
 						<div><small class="text-muted"><%= person.familyHead?familyHeadIcon:placeholderIcon %></small></div>
 						<div><small class="text-muted"><%= person.familyMember?familyMemberIcon:placeholderIcon %></small></div>
-						<div><small class="text-muted"><%= person.houseHold?householdHeadIcon:placeholderIcon %></small></div>
-						<div><small class="text-muted"><%= person.houseHoldMember?householdMemberIcon:placeholderIcon %></small></div>
+						<div><small class="text-muted"><%= person.householdHead?householdHeadIcon:placeholderIcon %></small></div>
+						<div><small class="text-muted"><%= person.householdMember?householdMemberIcon:placeholderIcon %></small></div>
 					</div>
-					<div class="name" <%= person.family?'title="Familj: ' +person.family+'"':'' %>><%= person.name %><span class="d-none no-print"> <%= person.birthDate %></span></div>
+					<div class="name" <%= person.family?'title="Familj: ' +person.family+'"':'' %>><%= person.name %><small class="text-muted no-print"> (<%= hiddenIcon %> <%= age(person.birthDate) %><%= person.family?', '+person.family:''%>)</small></div>
 					<div class="streetaddress"><%= person.streetaddress %></div>
 					<div class="postaladdress"><%= person.postalcode %> <%= person.postaladdress %></div>
-					<!--<div class="groups"><%= person.groups %></div>-->
 				</div>
 			<% if(person.print) {idx++};
 			}); %>
@@ -90,12 +88,7 @@
 						<input class="form-control" type="file" id="formFile" accept=".xls,.xlsx,.xlsb">
 					</div>
 					<div class="col-auto">
-						<!--<button type="submit" class="btn btn-primary" onclick="upload();return false;">Läs in fil</button>-->
 						<a href="#upload" class="btn btn-primary">Läs in fil</a>
-						<!--<button type="submit" class="btn btn-primary mb-3" onclick="print();return false;">Skriv ut...</button>-->
-						<!--<button id="viewReport" class="btn btn-outline-primary ms-2" disabled type="button" data-bs-toggle="collapse" data-bs-target="#collapseReport" aria-expanded="false" aria-controls="collapseExample">
-							Visa rapport
-						</button>-->
 					</div>
 				</form>
 			</li>
@@ -112,9 +105,10 @@
 	</div>
 
 	<div class="container no-print mb-4">
-		<div id="printController" class="">
-			<a href="#selectall" class="btn btn-primary">Markera alla för utskrift</a>
-			<a href="#deselectall" class="btn btn-primary">Avmarkera alla från utskrift</a>
+		<div id="printController">
+			<a href="#selectall" class="btn btn-primary disabled">Markera alla för utskrift</a>
+			<a href="#deselectall" class="btn btn-primary disabled">Avmarkera alla från utskrift</a>
+			<a href="#savereport" class="ms-4 btn btn-primary disabled">Spara rapport</a>
 		</div>
 		<small>Du kan alltid läsa om filen för att "återställa"</small>
 	</div>
@@ -125,96 +119,6 @@
 
     <script>
 		'use strict';
-
-		// Fill page with list of persons
-		/*let fillPage = (list) => {
-			// Template
-			let pageTemplate = _.template($('#pageTemplate').html());
-
-			// Render
-			$("#pageBody").html(pageTemplate({persons:list}));
-		}*/
-
-		let renderReportOld = (report, invalid, result) => {
-			let count = result.length;
-			let r = _.groupBy(report, _.iteratee('type'));
-			let s = "";
-			_.each(r, function(value, key) {
-				if(s != "") {
-					s += ", ";
-				}
-				s += key + ": " + value.length +" st";
-			});
-			$("#report").html("Antal etiketter: " + count + " st. Exkluderade - " + s);
-			$("#report").parent().toggleClass("d-none", false);
-
-			// Show any invalid
-			if(!_.isEmpty(invalid)) {
-
-				let i = "";
-				_.each(invalid, function(value, key) {
-					i += "<div>" + value.name + " " + value.birthDate + "</div>";
-				});
-				$("#invalid").html(i);
-				$("#invalid").parent().toggleClass("d-none", false);
-			}
-
-			// Save to browser
-			sessionStorage.setItem("sfk-etiketter-report", JSON.stringify(report));
-			sessionStorage.setItem("sfk-etiketter-invalid", JSON.stringify(invalid));
-			var result_report = [];
-			_.each(result, function(value) {
-				result_report.push(_.pick(value, ['name','birthDate','family']))
-			})
-			sessionStorage.setItem("sfk-etiketter-result", JSON.stringify(result_report));
-		}
-
-		let saveReportToFile = (report, invalid, result) => {
-			var wb = XLSX.utils.book_new();
-			wb.SheetNames.push("Utskick");
-			wb.SheetNames.push("Exkluderade");
-			wb.SheetNames.push("Felaktiga");
-
-			let ws_data = [];
-			_.each(report, function(item, idx) {
-				//console.log("exkluderade (" + idx + "): ", item);
-				ws_data.push(_.values(item));
-			});
-			console.log("ws_data; ", ws_data);
-			wb.Sheets["Exkluderade"] = XLSX.utils.aoa_to_sheet(ws_data);
-			console.log("wb: ", wb);
-
-			//let sht1 = XLSX.utils.aoa_to_sheet([["en","två","tre"],[1,2,3],[4,5],[7,8,9]])
-			//var shtExcluded = XLSX.utils.aoa_to_sheet(ws_data);
-			//XLSX.utils.book_append_sheet(wb, ws, ws_name);
-			
-			ws_data = [];
-			_.each(invalid, function(item, idx) {
-				//console.log("invalid (" + idx + "): ", item);
-				ws_data.push(_.values(item));
-			});
-			wb.Sheets["Felaktiga"] = XLSX.utils.aoa_to_sheet(ws_data);
-
-			ws_data = [];
-			result = _.sortBy(result, [function(o) { return o.postalcode; }]);
-			_.each(result, function(item, idx) {
-				//console.log("utskick (" + idx + "): ", _.pick(item, ['name','birthDate','streetaddress','family']));
-				ws_data.push(_.values(_.pick(item, ['name','birthDate','streetaddress','family'])));
-			});
-			wb.Sheets["Utskick"] = XLSX.utils.aoa_to_sheet(ws_data);
-
-			// Save to file
-			XLSX.writeFile(wb, "Rapport etiketter.xlsx", {});
-		}
-
-		let markIngenTidning = (person) => {
-			//let noPaper = _.map(_.split(o.groups, ','), _.trim).includes('MC_IngenTidning');
-			if(_.map(_.split(person.groups, ','), _.trim).includes('MC_IngenTidning')) {
-				person.print = false;
-				person.nopaper = 'MC_IngenTidning';
-			};
-			return person;
-		}
 				
 		let markFamilyRepresentant = (person, idx, persons) => {
 			//console.log("markFamilyRepresentant");
@@ -223,6 +127,7 @@
 				// Find first (printable) index for this family
 				let firstFamilyIndex = _.findIndex(persons, function(p) { 
 					return person.print && p.family == person.family; 
+					//return p.print && p.family == person.family; 
 				});
 				// Get first stored family head
 				let familyIndex = _.findIndex(persons, function(p) { 
@@ -243,31 +148,39 @@
 
 		let markOnePerHousehold = (person, idx, persons) => {
 			//console.log("markOnePerHousehold");
-			let householdKey = _.lowerCase(person.streetaddress)+_.lowerCase(person.postalcode);
+			let householdKey = person.householdKey;
+			let debug = person.name.includes("Alinder");
 			if(householdKey) {
 				// Find first (printable) household key
 				// -1 for no hit, else 0+
 				let firstHouseholdIndex = _.findIndex(persons, function(p) { 
 					return person.print && p.householdKey == householdKey; 
 				});
+				if(debug) {
+					//console.log("firstHouseholdIndex: ", firstHouseholdIndex);
+				}
 				// Get current persons idx
 				// -1 for no hit, else 0+
 				let householdIndex = _.findIndex(persons, function(p) { 
-					return p.householdKey == householdKey && p.householdIndex == firstHouseholdIndex; 
+					return p.householdKey == householdKey && p.householdHead == firstHouseholdIndex; 
 				});
+				if(debug) {
+					//console.log("householdIndex: ", householdIndex);
+					console.log("person: ", person.name, householdKey, householdIndex, firstHouseholdIndex)
+				}
 				if(firstHouseholdIndex >= 0 && householdIndex < 0) {
 					// Set as household head
 					person.print = person.print && true;
-					person.householdIndex = firstHouseholdIndex;
+					person.householdHead = firstHouseholdIndex;
 				} else {
 					// Set as duplicate for this household
-					//person.print = false;
+					person.print = false;
 					person.householdMember = true;
 				}
-			} else {
+			} /*else {
 				person.print = false;
 				person.invalid = true;
-			}
+			}*/
 			return person;
 		};
 
@@ -305,11 +218,11 @@
 			// For testing purposes, to limit the result in "size"
 			let i=0;
 
-			let result = []; // Persons
+			let persons = []; 
 			for (let person of excelRows) {
 				if(i<50000) {
 					i++;
-					result.push(_.pick(person, ['IdrottsID','Förnamn', 'Efternamn',
+					persons.push(_.pick(person, ['IdrottsID','Förnamn', 'Efternamn',
 						'Folkbokföring - Gatuadress',
 						'Folkbokföring - Postnummer',
 						'Folkbokföring - Postort',
@@ -325,71 +238,71 @@
 				}
 			}
 			// Rename/convert properties
-			result = result.map((e) => {
-				if(_.trim(e['Folkbokföring - Gatuadress']) != "") {
+			persons = persons.map((p) => {
+				if(_.trim(p['Folkbokföring - Gatuadress']) != "") {
 					// Assume we have Folkbokföringsadress
 					return {
-						id: _.trim(e['IdrottsID']),
-						name: _.trim(e['Förnamn']) + ' ' + _.trim(e['Efternamn']),
-						streetaddress: _.trim(e['Folkbokföring - Gatuadress']),
-						postalcode: _.trim(e['Folkbokföring - Postnummer']),
-						postaladdress: _.trim(e['Folkbokföring - Postort']),
-						co_address: _.trim(e['Folkbokföring - c/o adress']),
-						family: _.trim(e['Familj']),
-						birthDate: _.trim(e['Födelsedat./Personnr.']),
-						groups: _.trim(e['Grupp/Lag/Arbetsrum/Familj']),
+						id: _.trim(p['IdrottsID']),
+						name: _.trim(p['Förnamn']) + ' ' + _.trim(p['Efternamn']),
+						streetaddress: _.trim(p['Folkbokföring - Gatuadress']),
+						postalcode: _.trim(p['Folkbokföring - Postnummer']),
+						postaladdress: _.trim(p['Folkbokföring - Postort']),
+						co_address: _.trim(p['Folkbokföring - c/o adress']),
+						family: _.trim(p['Familj']),
+						birthDate: _.trim(p['Födelsedat./Personnr.']),
+						groups: _.trim(p['Grupp/Lag/Arbetsrum/Familj']),
 						print: true,
-						type: 'default'
+						type: 'default',
+						householdKey: _.replace(_.lowerCase(_.trim(p['Folkbokföring - Gatuadress'])+_.trim(p['Folkbokföring - Postort'])),/ /g,'')
 					}
 				} else {
 					// Fallback to Kontaktadress
 					return {
-						id: _.trim(e['IdrottsID']),
-						name: _.trim(e['Förnamn']) + ' ' + _.trim(e['Efternamn']),
-						streetaddress: _.trim(e['Kontaktadress - Gatuadress']),
-						postalcode: _.trim(e['Kontaktadress - Postnummer']),
-						postaladdress: _.trim(e['Kontaktadress - Postort']),
-						co_address: _.trim(e['Kontaktadress - c/o adress']),
-						family: _.trim(e['Familj']),
-						birthDate: _.trim(e['Födelsedat./Personnr.']),
-						groups: _.trim(e['Grupp/Lag/Arbetsrum/Familj']),
+						id: _.trim(p['IdrottsID']),
+						name: _.trim(p['Förnamn']) + ' ' + _.trim(p['Efternamn']),
+						streetaddress: _.trim(p['Kontaktadress - Gatuadress']),
+						postalcode: _.trim(p['Kontaktadress - Postnummer']),
+						postaladdress: _.trim(p['Kontaktadress - Postort']),
+						co_address: _.trim(p['Kontaktadress - c/o adress']),
+						family: _.trim(p['Familj']),
+						birthDate: _.trim(p['Födelsedat./Personnr.']),
+						groups: _.trim(p['Grupp/Lag/Arbetsrum/Familj']),
 						print: true,
-						type: 'contact-address'
+						type: 'contact-address',
+						householdKey: _.replace(_.lowerCase(_.trim(p['Kontaktadress - Gatuadress'])+_.trim(p['Kontaktadress - Postort'])),/ /g,'')
 					}
 				}
 			});
 
 			// Mark MC_IngenTidning
-			result = _.map(result, markIngenTidning);
+			persons = _.map(persons, markIngenTidning);
 
 			// Keep only one per family
-			//let familyList = []; // Keep track of existing families
-			result = _.sortBy(result, [function(o) { return o.birthDate; }]); // To get oldest person as family representant
-			result = _.map(result, markFamilyRepresentant, result);
+			persons = _.sortBy(persons, [function(p) { return p.birthDate; }]); // To get oldest person as family representant
+			persons = _.map(persons, markFamilyRepresentant, persons);
 
 			// Only one per address
-			let householdList = []; // Keep track of "households" - to avoid duplicates per household
+			//let householdList = []; // Keep track of "households" - to avoid duplicates per household
 			// Sort again by age - not sure if filter above affects order or not
-			result = _.sortBy(result, [function(o) { return o.birthDate; }]); // To get oldest person as family representant
-			result = _.map(result, markOnePerHousehold, result);
+			persons = _.sortBy(persons, [function(p) { return p.birthDate; }]); // To get oldest person as family representant
+			persons = _.map(persons, markOnePerHousehold, persons);
 
 			// Sort by postnummer - by request
-			result = _.sortBy(result, [function(o) { return o.postalcode; }]);
+			persons = _.sortBy(persons, [function(p) { return p.postalcode; }]);
 
-			// Show loaded result
-			sessionStorage.setItem("sfk-etiketter-list", JSON.stringify(result));
-			console.log("index.html: list stored");
+			// Save result
+			sessionStorage.setItem("sfk-etiketter-list", JSON.stringify(persons));
+			//console.log("index.html: list stored");
+
+			// Active function-buttons
+			$("#printController a").toggleClass("disabled", false);
+
+			// Show
 			routie.navigate("list");
-			//report = _.sortBy(report, [function(o) { return o.type; }]);
-			//renderReport(report, invalid, result);
-			//saveReport(report, invalid, result);
 		};
 
 		document.addEventListener('DOMContentLoaded', function (event) {
-			//document.location.hash = '';
-			//window.location = "#";
 			console.log("Ready!");
-			//document.getElementById("pageBody").addEventListener("click", togglePersonState.bind(this), false);
 			setupRouters();
 			routie("");
 		});
