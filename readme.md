@@ -19,7 +19,7 @@ Record type
         "Alt. förnamn": "",
         "Efternamn": "yyy",
         "IdrottsID": "IIDnnnnnnnn",
-        "Födelsedat./Personnr.": "2003-01-01",
+        "Födelsedat./Personnr. (ååååmmdd-xxxx)": "2003-01-01",
         "Kön": "Kvinna",
         "Nationalitet": "Sverige",
         "Telefon mobil": "0700123456",
