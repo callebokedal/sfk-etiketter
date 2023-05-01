@@ -29,11 +29,15 @@
 		</div>
 	</nav>
 
-	<!-- Template for A4-page with 3x8 grids -->
-	<script type="text/template" id="listTemplateOld">
-		<div class="row page">Heja
+	<!-- Statistics -->
+	<script type="text/template" id="statsTemplate">
+		<div class="alert alert-primary no-print" role="alert">
+			Inlästa personer: <%= stats.total %> st<br>
+			För utskrift: <%= stats.to_print %> st<br>
+			Ej för utskrift: <%= stats.not_to_print %> st (familjemedlemmar, eller tack nej etc.)<br>
 		</div>
 	</script>
+	<!-- Template for A4-page with 3x8 grids -->
 	<script type="text/template" id="listTemplate">
 		<div class="row page">
 			<% 
@@ -71,7 +75,7 @@
 	<div class="container no-print">
 		<h4 class="mt-3">Instruktioner</h4>
 		<ul class="list-group mb-4">
-			<li class="list-group-item">1. Exportera en Excel-fil med medlemmar från <a href="https://www.sjovalla.se" target="_blank">Idrott Online</a>
+			<li class="list-group-item">1. Exportera en Excel-fil med medlemmar från <a href="https://login.idrottonline.se/" target="_blank">IdrottOnline</a>
 				<ul class="list-group mb-1">
 					<li class="list-group-item">A. Logga in som vanligt</li>
 					<li class="list-group-item">B. Gå till <span class="fw-bold">Administration</span> &raquo; <span class="fw-bold">Personer</span></li>
@@ -114,6 +118,7 @@
 	</div>
 
 	<div class="container-fluid">
+		<div id="stats"></div>
 		<div id="pageBody"></div>
 	</div>
 
@@ -232,7 +237,7 @@
 						'Kontaktadress - Postnummer',
 						'Kontaktadress - Postort',
 						'Kontaktadress - c/o adress',
-						'Födelsedat./Personnr.',
+						'Födelsedat./Personnr. (ååååmmdd-xxxx)',
 						'Grupp/Lag/Arbetsrum/Familj'
 					]));
 				}
@@ -249,7 +254,7 @@
 						postaladdress: _.trim(p['Folkbokföring - Postort']),
 						co_address: _.trim(p['Folkbokföring - c/o adress']),
 						family: _.trim(p['Familj']),
-						birthDate: _.trim(p['Födelsedat./Personnr.']),
+						birthDate: _.trim(p['Födelsedat./Personnr. (ååååmmdd-xxxx)']),
 						groups: _.trim(p['Grupp/Lag/Arbetsrum/Familj']),
 						print: true,
 						type: 'default',
@@ -265,7 +270,7 @@
 						postaladdress: _.trim(p['Kontaktadress - Postort']),
 						co_address: _.trim(p['Kontaktadress - c/o adress']),
 						family: _.trim(p['Familj']),
-						birthDate: _.trim(p['Födelsedat./Personnr.']),
+						birthDate: _.trim(p['Födelsedat./Personnr. (ååååmmdd-xxxx)']),
 						groups: _.trim(p['Grupp/Lag/Arbetsrum/Familj']),
 						print: true,
 						type: 'contact-address',
